@@ -3,25 +3,19 @@ import { useEffect, useState } from "react";
 import {
   getOutgoingFriendReqs,
   getRecommendedUsers,
-  getUserFriends,
   sendFriendRequest,
 } from "../lib/api";
-import { Link } from "react-router";
-import { CheckCircleIcon, MapPinIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { CheckCircleIcon, MapPinIcon, UserPlusIcon } from "lucide-react";
 
 import { capitialize } from "../lib/utils";
 
-import FriendCard, { getLanguageFlag } from "../components/FriendCard";
-import NoFriendsFound from "../components/NoFriendsFound";
+import { getLanguageFlag } from "../components/FriendCard";
+import useAuthUser from "../hooks/useAuthUser";
 
 const HomePage = () => {
   const queryClient = useQueryClient();
   const [outgoingRequestsIds, setOutgoingRequestsIds] = useState(new Set());
-
-  const { data: friends = [], isLoading: loadingFriends } = useQuery({
-    queryKey: ["friends"],
-    queryFn: getUserFriends,
-  });
+  const { authUser } = useAuthUser();
 
   const { data: recommendedUsers = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["users"],
@@ -51,33 +45,45 @@ const HomePage = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="container mx-auto space-y-10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Your Friends</h2>
-          <Link to="/notifications" className="btn btn-outline btn-sm">
-            <UsersIcon className="mr-2 size-4" />
-            Friend Requests
-          </Link>
-        </div>
-
-        {loadingFriends ? (
-          <div className="flex justify-center py-12">
-            <span className="loading loading-spinner loading-lg" />
+        <section className="card bg-base-200 shadow-sm">
+          <div className="card-body sm:flex-row sm:items-center gap-5">
+            <div className="avatar size-20 shrink-0">
+              <img src={authUser?.profilePic} alt={authUser?.fullName || "Your profile"} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Welcome back, {authUser?.fullName}!
+              </h1>
+              {authUser?.bio && <p className="mt-2 opacity-70">{authUser.bio}</p>}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {authUser?.location && (
+                  <span className="badge badge-ghost gap-1">
+                    <MapPinIcon className="size-3" />
+                    {authUser.location}
+                  </span>
+                )}
+                {authUser?.nativeLanguage && (
+                  <span className="badge badge-secondary">
+                    {getLanguageFlag(authUser.nativeLanguage)}
+                    Native: {capitialize(authUser.nativeLanguage)}
+                  </span>
+                )}
+                {authUser?.learningLanguage && (
+                  <span className="badge badge-outline">
+                    {getLanguageFlag(authUser.learningLanguage)}
+                    Learning: {capitialize(authUser.learningLanguage)}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        ) : friends.length === 0 ? (
-          <NoFriendsFound />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {friends.map((friend) => (
-              <FriendCard key={friend._id} friend={friend} />
-            ))}
-          </div>
-        )}
+        </section>
 
         <section>
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Meet New Learners</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Meet New Friends</h2>
                 <p className="opacity-70">
                   Discover perfect language exchange partners based on your profile
                 </p>
