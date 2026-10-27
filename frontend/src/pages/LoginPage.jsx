@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShipWheelIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, ShipWheelIcon } from "lucide-react";
 import { Link } from "react-router";
 import useLogin from "../hooks/useLogin";
 
@@ -8,6 +8,7 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   // This is how we did it at first, without using our custom hook
   // const queryClient = useQueryClient();
@@ -80,14 +81,29 @@ const LoginPage = () => {
                     <label className="label">
                       <span className="label-text">Password</span>
                     </label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      className="input input-bordered w-full"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        type={isPasswordVisible ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="input input-bordered w-full pr-10"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm btn-square absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => setIsPasswordVisible((visible) => !visible)}
+                        aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                        aria-pressed={isPasswordVisible}
+                      >
+                        {isPasswordVisible ? (
+                          <EyeOffIcon className="size-4" aria-hidden="true" />
+                        ) : (
+                          <EyeIcon className="size-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <button type="submit" className="btn btn-primary w-full" disabled={isPending}>
