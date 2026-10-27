@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
+import { getStreamUsersOnlineStatus } from "../lib/stream.js";
 
 export async function getRecommendedUsers(req, res) {
   try {
@@ -30,6 +31,24 @@ export async function getMyFriends(req, res) {
   } catch (error) {
     console.error("Error in getMyFriends controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function getMyFriendsOnlineStatus(req, res) {
+  try {
+    const user = await User.findById(req.user.id).select("friends");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const friendIds = user.friends.map((friendId) => friendId.toString());
+    if (friendIds.length === 0) return res.status(200).json({});
+
+    const friendsStatus = await getStreamUsersOnlineStatus(friendIds);
+    res.status(200).json(
+      Object.fromEntries(friendsStatus.map(({ id, online }) => [id, online]))
+    );
+  } catch (error) {
+    console.error("Error in getMyFriendsOnlineStatus controller", error.message);
+    res.status(500).json({ message: "Unable to load friend online statuses" });
   }
 }
 

@@ -4,6 +4,7 @@ import {
   acceptFriendRequest,
   getFriendRequests,
   getMyFriends,
+  getMyFriendsOnlineStatus,
   getOutgoingFriendReqs,
   getRecommendedUsers,
   sendFriendRequest,
@@ -16,6 +17,7 @@ router.use(protectRoute);
 
 router.get("/", getRecommendedUsers);
 router.get("/friends", getMyFriends);
+router.get("/friends/online-status", getMyFriendsOnlineStatus);
 
 router.post("/friend-request/:id", sendFriendRequest);
 router.put("/friend-request/:id/accept", acceptFriendRequest);

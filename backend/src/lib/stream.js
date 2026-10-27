@@ -28,3 +28,13 @@ export const generateStreamToken = (userId) => {
     console.error("Error generating Stream token:", error);
   }
 };
+
+export const getStreamUsersOnlineStatus = async (userIds) => {
+  const { users } = await streamClient.queryUsers(
+    { id: { $in: userIds } },
+    [],
+    { presence: true, limit: userIds.length }
+  );
+
+  return users.map(({ id, online }) => ({ id, online }));
+};
