@@ -3,12 +3,23 @@ import { Link } from "react-router";
 import { BellIcon } from "lucide-react";
 import FriendCard from "../components/FriendCard";
 import NoFriendsFound from "../components/NoFriendsFound";
-import { getUserFriends } from "../lib/api";
+import { getFriendsOnlineStatus, getUserFriends } from "../lib/api";
 
 const FriendsPage = () => {
   const { data: friends = [], isLoading } = useQuery({
     queryKey: ["friends"],
     queryFn: getUserFriends,
+  });
+
+  const {
+    data: friendsOnlineStatus = {},
+    isError: onlineStatusError,
+    isLoading: loadingOnlineStatus,
+  } = useQuery({
+    queryKey: ["friendsOnlineStatus"],
+    queryFn: getFriendsOnlineStatus,
+    enabled: !isLoading && friends.length > 0,
+    refetchInterval: 30_000,
   });
 
   return (
@@ -34,7 +45,12 @@ const FriendsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {friends.map((friend) => (
-              <FriendCard key={friend._id} friend={friend} />
+              <FriendCard
+                key={friend._id}
+                friend={friend}
+                onlineStatus={onlineStatusError ? null : friendsOnlineStatus[friend._id]}
+                loadingOnlineStatus={loadingOnlineStatus}
+              />
             ))}
           </div>
         )}

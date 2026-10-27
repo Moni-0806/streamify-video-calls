@@ -1,20 +1,69 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import {
+  completeOnboarding,
   getOutgoingFriendReqs,
   getRecommendedUsers,
   sendFriendRequest,
 } from "../lib/api";
-import { CheckCircleIcon, MapPinIcon, UserPlusIcon } from "lucide-react";
+import {
+  CheckCircleIcon,
+  LoaderIcon,
+  MapPinIcon,
+  PencilIcon,
+  ShuffleIcon,
+  UploadIcon,
+  UserPlusIcon,
+} from "lucide-react";
 
 import { capitialize } from "../lib/utils";
 
 import { getLanguageFlag } from "../components/FriendCard";
 import useAuthUser from "../hooks/useAuthUser";
+import { LANGUAGES } from "../constants";
+
+const MAX_UPLOAD_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_COMPRESSED_IMAGE_SIZE = 600 * 1024;
+
+const compressImage = async (file) => {
+  const imageBitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 512 / Math.max(imageBitmap.width, imageBitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(imageBitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(imageBitmap.height * scale));
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    imageBitmap.close();
+    throw new Error("Unable to process this image");
+  }
+
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+  imageBitmap.close();
+
+  for (const quality of [0.85, 0.7, 0.55, 0.4]) {
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+    if (blob && blob.size <= MAX_COMPRESSED_IMAGE_SIZE) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Unable to read the processed image"));
+        reader.readAsDataURL(blob);
+      });
+    }
+  }
+
+  throw new Error("This image could not be compressed to a suitable size");
+};
 
 const HomePage = () => {
   const queryClient = useQueryClient();
   const [outgoingRequestsIds, setOutgoingRequestsIds] = useState(new Set());
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
   const { authUser } = useAuthUser();
 
   const { data: recommendedUsers = [], isLoading: loadingUsers } = useQuery({
@@ -31,6 +80,79 @@ const HomePage = () => {
     mutationFn: sendFriendRequest,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["outgoingFriendReqs"] }),
   });
+
+  const { mutate: updateProfile, isPending: isSavingProfile } = useMutation({
+    mutationFn: completeOnboarding,
+    onSuccess: ({ user }) => {
+      queryClient.setQueryData(["authUser"], (current) => ({ ...current, user }));
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setIsEditingProfile(false);
+      toast.success("Profile updated successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Unable to update your profile");
+    },
+  });
+
+  const handleEditProfile = () => {
+    setProfileForm({
+      fullName: authUser?.fullName || "",
+      bio: authUser?.bio || "",
+      nativeLanguage: authUser?.nativeLanguage || "",
+      learningLanguage: authUser?.learningLanguage || "",
+      location: authUser?.location || "",
+      profilePic: authUser?.profilePic || "",
+    });
+    setIsEditingProfile(true);
+  };
+
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleProfileSubmit = (event) => {
+    event.preventDefault();
+    updateProfile(
+      Object.fromEntries(
+        Object.entries(profileForm).map(([field, value]) => [
+          field,
+          typeof value === "string" ? value.trim() : value,
+        ])
+      )
+    );
+  };
+
+  const handleRandomAvatar = () => {
+    const idx = Math.floor(Math.random() * 100) + 1;
+    setProfileForm((current) => ({
+      ...current,
+      profilePic: `https://avatar.iran.liara.run/public/${idx}.png`,
+    }));
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Choose a JPG, PNG, or WebP image");
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_FILE_SIZE) {
+      toast.error("Choose an image smaller than 10 MB");
+      return;
+    }
+
+    try {
+      const profilePic = await compressImage(file);
+      setProfileForm((current) => ({ ...current, profilePic }));
+    } catch (error) {
+      toast.error(error.message || "Unable to process this image");
+    }
+  };
 
   useEffect(() => {
     const outgoingIds = new Set();
@@ -50,7 +172,7 @@ const HomePage = () => {
             <div className="avatar size-20 shrink-0">
               <img src={authUser?.profilePic} alt={authUser?.fullName || "Your profile"} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Welcome back, {authUser?.fullName}!
               </h1>
@@ -76,7 +198,141 @@ const HomePage = () => {
                 )}
               </div>
             </div>
+            {!isEditingProfile && (
+              <button className="btn btn-outline btn-sm" onClick={handleEditProfile}>
+                <PencilIcon className="size-4" />
+                Edit Profile
+              </button>
+            )}
+            {isEditingProfile && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsEditingProfile(false)}
+                disabled={isSavingProfile}
+              >
+                Cancel
+              </button>
+            )}
           </div>
+          {isEditingProfile && (
+            <form
+              onSubmit={handleProfileSubmit}
+              className="px-6 pb-6 border-t border-base-300 pt-5"
+            >
+                <div className="flex flex-col sm:flex-row items-center gap-4 mb-5">
+                  <div className="avatar size-24 shrink-0 rounded-full bg-base-300 overflow-hidden">
+                    {profileForm.profilePic && (
+                      <img src={profileForm.profilePic} alt="Profile preview" />
+                    )}
+                  </div>
+                  <div className="form-control w-full">
+                    <span className="label-text mb-2">Profile picture</span>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="btn btn-outline btn-sm">
+                        <UploadIcon className="size-4 mr-2" />
+                        Upload image
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={handleRandomAvatar}
+                      >
+                        <ShuffleIcon className="size-4 mr-2" />
+                        Generate random avatar
+                      </button>
+                    </div>
+                    <p className="text-xs opacity-70 mt-2">
+                      JPG, PNG, or WebP. Images are resized before saving.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="form-control">
+                    <span className="label-text mb-2">Full name</span>
+                    <input
+                      name="fullName"
+                      value={profileForm.fullName}
+                      onChange={handleProfileChange}
+                      className="input input-bordered"
+                      required
+                    />
+                  </label>
+                  <label className="form-control">
+                    <span className="label-text mb-2">Location</span>
+                    <input
+                      name="location"
+                      value={profileForm.location}
+                      onChange={handleProfileChange}
+                      className="input input-bordered"
+                      required
+                    />
+                  </label>
+                  <label className="form-control">
+                    <span className="label-text mb-2">Native language</span>
+                    <select
+                      name="nativeLanguage"
+                      value={profileForm.nativeLanguage}
+                      onChange={handleProfileChange}
+                      className="select select-bordered"
+                      required
+                    >
+                      <option value="">Select your native language</option>
+                      {LANGUAGES.map((language) => (
+                        <option key={`native-${language}`} value={language.toLowerCase()}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-control">
+                    <span className="label-text mb-2">Learning language</span>
+                    <select
+                      name="learningLanguage"
+                      value={profileForm.learningLanguage}
+                      onChange={handleProfileChange}
+                      className="select select-bordered"
+                      required
+                    >
+                      <option value="">Select a language to learn</option>
+                      {LANGUAGES.map((language) => (
+                        <option key={`learning-${language}`} value={language.toLowerCase()}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-control md:col-span-2">
+                    <span className="label-text mb-2">Bio</span>
+                    <textarea
+                      name="bio"
+                      value={profileForm.bio}
+                      onChange={handleProfileChange}
+                      className="textarea textarea-bordered"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary mt-5"
+                  disabled={isSavingProfile}
+                >
+                  {isSavingProfile ? (
+                    <LoaderIcon className="size-4 animate-spin" />
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+            </form>
+          )}
         </section>
 
         <section>

@@ -34,6 +34,11 @@ export async function getUserFriends() {
   return response.data;
 }
 
+export async function getFriendsOnlineStatus() {
+  const response = await axiosInstance.get("/users/friends/online-status");
+  return response.data;
+}
+
 export async function getRecommendedUsers() {
   const response = await axiosInstance.get("/users");
   return response.data;
