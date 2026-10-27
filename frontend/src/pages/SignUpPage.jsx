@@ -10,7 +10,11 @@ const SignUpPage = () => {
     email: "",
     password: "",
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
 
   // This is how we did it at first, without using our custom hook
   // const queryClient = useQueryClient();
@@ -28,6 +32,10 @@ const SignUpPage = () => {
 
   const handleSignup = (e) => {
     e.preventDefault();
+    if (signupData.password !== confirmPassword) {
+      setPasswordMismatch(true);
+      return;
+    }
     signupMutation(signupData);
   };
 
@@ -72,10 +80,15 @@ const SignUpPage = () => {
                     </label>
                     <input
                       type="text"
-                      placeholder="John Doe"
+                      placeholder="Nimona Dida"
                       className="input input-bordered w-full"
                       value={signupData.fullName}
-                      onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({
+                          ...signupData,
+                          fullName: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -86,10 +99,12 @@ const SignUpPage = () => {
                     </label>
                     <input
                       type="email"
-                      placeholder="john@gmail.com"
+                      placeholder="nimona@gmail.com"
                       className="input input-bordered w-full"
                       value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, email: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -104,14 +119,25 @@ const SignUpPage = () => {
                         placeholder="********"
                         className="input input-bordered w-full pr-10"
                         value={signupData.password}
-                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        onChange={(e) => {
+                          setSignupData({
+                            ...signupData,
+                            password: e.target.value,
+                          });
+                          if (e.target.value === confirmPassword)
+                            setPasswordMismatch(false);
+                        }}
                         required
                       />
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm btn-square absolute right-1 top-1/2 -translate-y-1/2"
-                        onClick={() => setIsPasswordVisible((visible) => !visible)}
-                        aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                        onClick={() =>
+                          setIsPasswordVisible((visible) => !visible)
+                        }
+                        aria-label={
+                          isPasswordVisible ? "Hide password" : "Show password"
+                        }
                         aria-pressed={isPasswordVisible}
                       >
                         {isPasswordVisible ? (
@@ -125,14 +151,77 @@ const SignUpPage = () => {
                       Password must be at least 6 characters long
                     </p>
                   </div>
+                  {/* CONFIRM PASSWORD */}
+                  <div className="form-control w-full">
+                    <label className="label">
+                      <span className="label-text">Confirm Password</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={isConfirmPasswordVisible ? "text" : "password"}
+                        placeholder="********"
+                        className="input input-bordered w-full pr-10"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          if (e.target.value === signupData.password)
+                            setPasswordMismatch(false);
+                        }}
+                        aria-invalid={passwordMismatch}
+                        aria-describedby={
+                          passwordMismatch
+                            ? "password-mismatch-error"
+                            : undefined
+                        }
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm btn-square absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() =>
+                          setIsConfirmPasswordVisible((visible) => !visible)
+                        }
+                        aria-label={
+                          isConfirmPasswordVisible
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                        aria-pressed={isConfirmPasswordVisible}
+                      >
+                        {isConfirmPasswordVisible ? (
+                          <EyeOffIcon className="size-4" aria-hidden="true" />
+                        ) : (
+                          <EyeIcon className="size-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                    {passwordMismatch && (
+                      <p
+                        id="password-mismatch-error"
+                        className="text-xs text-error mt-1"
+                        role="alert"
+                      >
+                        Passwords do not match.
+                      </p>
+                    )}
+                  </div>
 
                   <div className="form-control">
                     <label className="label cursor-pointer justify-start gap-2">
-                      <input type="checkbox" className="checkbox checkbox-sm" required />
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        required
+                      />
                       <span className="text-xs leading-tight">
                         I agree to the{" "}
-                        <span className="text-primary hover:underline">terms of service</span> and{" "}
-                        <span className="text-primary hover:underline">privacy policy</span>
+                        <span className="text-primary hover:underline">
+                          terms of service
+                        </span>{" "}
+                        and{" "}
+                        <span className="text-primary hover:underline">
+                          privacy policy
+                        </span>
                       </span>
                     </label>
                   </div>
@@ -167,13 +256,20 @@ const SignUpPage = () => {
           <div className="max-w-md p-8">
             {/* Illustration */}
             <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
+              <img
+                src="/i.png"
+                alt="Language connection illustration"
+                className="w-full h-full"
+              />
             </div>
 
             <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
+              <h2 className="text-xl font-semibold">
+                Connect with language partners worldwide
+              </h2>
               <p className="opacity-70">
-                Practice conversations, make friends, and improve your language skills together
+                Practice conversations, make friends, and improve your language
+                skills together
               </p>
             </div>
           </div>
