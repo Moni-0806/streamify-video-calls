@@ -29,6 +29,21 @@ export const completeOnboarding = async (userData) => {
   return response.data;
 };
 
+export const changePassword = async (passwordData) => {
+  const response = await axiosInstance.post("/auth/change-password", passwordData);
+  return response.data;
+};
+
+export const updateProfilePrivacy = async (isProfilePublic) => {
+  const response = await axiosInstance.patch("/auth/privacy", { isProfilePublic });
+  return response.data;
+};
+
+export const submitFeedback = async (feedback) => {
+  const response = await axiosInstance.post("/auth/feedback", feedback);
+  return response.data;
+};
+
 export async function getUserFriends() {
   const response = await axiosInstance.get("/users/friends");
   return response.data;

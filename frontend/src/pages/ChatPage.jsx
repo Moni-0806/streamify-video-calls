@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
-import { useQuery } from "@tanstack/react-query";
-import { getStreamToken } from "../lib/api";
 
 import {
   Channel,
@@ -13,72 +11,56 @@ import {
   Thread,
   Window,
 } from "stream-chat-react";
-import { StreamChat } from "stream-chat";
 import toast from "react-hot-toast";
 
 import ChatLoader from "../components/ChatLoader";
 import CallButton from "../components/CallButton";
-
-const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
+import useStreamChat from "../hooks/useStreamChat";
 
 const ChatPage = () => {
   const { id: targetUserId } = useParams();
 
-  const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [channelError, setChannelError] = useState(false);
+  const [retryChannel, setRetryChannel] = useState(0);
 
   const { authUser } = useAuthUser();
-
-  const { data: tokenData } = useQuery({
-    queryKey: ["streamToken"],
-    queryFn: getStreamToken,
-    enabled: !!authUser, // this will run only when authUser is available
-  });
+  const { chatClient, isReady, streamError, retryConnection } = useStreamChat();
 
   useEffect(() => {
+    let cancelled = false;
+
     const initChat = async () => {
-      if (!tokenData?.token || !authUser) return;
+      if (!isReady || !chatClient || !authUser || !targetUserId) {
+        setLoading(true);
+        return;
+      }
 
+      setLoading(true);
+      setChannel(null);
+      setChannelError(false);
       try {
-        console.log("Initializing stream chat client...");
-
-        const client = StreamChat.getInstance(STREAM_API_KEY);
-
-        await client.connectUser(
-          {
-            id: authUser._id,
-            name: authUser.fullName,
-            image: authUser.profilePic,
-          },
-          tokenData.token
-        );
-
-        //
         const channelId = [authUser._id, targetUserId].sort().join("-");
-
-        // you and me
-        // if i start the chat => channelId: [myId, yourId]
-        // if you start the chat => channelId: [yourId, myId]  => [myId,yourId]
-
-        const currChannel = client.channel("messaging", channelId, {
+        const currChannel = chatClient.channel("messaging", channelId, {
           members: [authUser._id, targetUserId],
         });
 
         await currChannel.watch();
-
-        setChatClient(client);
-        setChannel(currChannel);
+        if (!cancelled) setChannel(currChannel);
       } catch (error) {
         console.error("Error initializing chat:", error);
-        toast.error("Could not connect to chat. Please try again.");
+        if (!cancelled) setChannelError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     initChat();
-  }, [tokenData, authUser, targetUserId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [chatClient, isReady, authUser, targetUserId, retryChannel]);
 
   const handleVideoCall = () => {
     if (channel) {
@@ -92,7 +74,34 @@ const ChatPage = () => {
     }
   };
 
-  if (loading || !chatClient || !channel) return <ChatLoader />;
+  if (streamError || channelError) {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 p-6 text-center">
+        <h1 className="text-xl font-semibold">Chat couldn’t connect</h1>
+        <p className="max-w-md text-sm text-base-content/70">
+          Check your connection and try again. Your messages and conversations are unchanged.
+        </p>
+        {streamError ? (
+          <button type="button" className="btn btn-primary" onClick={retryConnection}>
+            Retry connection
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setRetryChannel((attempt) => attempt + 1)}
+          >
+            Try opening chat again
+          </button>
+        )}
+        <Link to="/friends" className="btn btn-ghost btn-sm">
+          Back to friends
+        </Link>
+      </div>
+    );
+  }
+
+  if (loading || !isReady || !chatClient || !channel) return <ChatLoader />;
 
   return (
     <div className="h-[93vh]">

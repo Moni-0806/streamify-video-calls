@@ -3,11 +3,14 @@ import useAuthUser from "../hooks/useAuthUser";
 import { BellIcon, LogOutIcon, ShipWheelIcon } from "lucide-react";
 import ThemeSelector from "./ThemeSelector";
 import useLogout from "../hooks/useLogout";
+import useStreamChat from "../hooks/useStreamChat";
 
 const Navbar = () => {
   const { authUser } = useAuthUser();
+  const { incomingFriendRequestCount, unreadCount } = useStreamChat();
   const location = useLocation();
   const isChatPage = location.pathname?.startsWith("/chat");
+  const notificationCount = incomingFriendRequestCount + unreadCount;
 
   // const queryClient = useQueryClient();
   // const { mutate: logoutMutation } = useMutation({
@@ -34,10 +37,17 @@ const Navbar = () => {
           )}
 
           <div className="flex items-center gap-3 sm:gap-4 ml-auto">
-            <Link to={"/notifications"}>
-              <button className="btn btn-ghost btn-circle">
-                <BellIcon className="h-6 w-6 text-base-content opacity-70" />
-              </button>
+            <Link
+              to="/notifications"
+              className="btn btn-ghost btn-circle relative"
+              aria-label={`Notifications, ${notificationCount} unread`}
+            >
+              <BellIcon className="h-6 w-6 text-base-content opacity-70" />
+              {notificationCount > 0 && (
+                <span className="badge badge-error badge-xs absolute -right-1 -top-1">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
             </Link>
           </div>
 

@@ -1,5 +1,6 @@
 import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
+import Feedback from "../models/Feedback.js";
 import jwt from "jsonwebtoken";
 
 export async function signup(req, res) {
@@ -101,33 +102,130 @@ export function logout(req, res) {
   res.status(200).json({ success: true, message: "Logout successful" });
 }
 
+export async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new passwords are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isCurrentPasswordCorrect = await user.matchPassword(currentPassword);
+    if (!isCurrentPasswordCorrect) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: "Choose a new password different from your current one" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Unable to update password" });
+  }
+}
+
+export async function updateProfilePrivacy(req, res) {
+  try {
+    const { isProfilePublic } = req.body;
+    if (typeof isProfilePublic !== "boolean") {
+      return res.status(400).json({ message: "Profile visibility setting is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { isProfilePublic },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Update profile privacy error:", error);
+    res.status(500).json({ message: "Unable to update privacy settings" });
+  }
+}
+
+export async function submitFeedback(req, res) {
+  try {
+    const { category, message } = req.body;
+    if (!["question", "bug", "suggestion", "other"].includes(category)) {
+      return res.status(400).json({ message: "Select a valid feedback category" });
+    }
+    if (typeof message !== "string" || message.trim().length < 10 || message.trim().length > 2000) {
+      return res.status(400).json({ message: "Feedback must be between 10 and 2000 characters" });
+    }
+
+    await Feedback.create({ user: req.user.id, category, message: message.trim() });
+    res.status(201).json({ success: true, message: "Thanks for sharing your feedback" });
+  } catch (error) {
+    console.error("Submit feedback error:", error);
+    res.status(500).json({ message: "Unable to submit feedback" });
+  }
+}
+
 export async function onboard(req, res) {
   try {
     const userId = req.user._id;
 
-    const { fullName, bio, nativeLanguage, learningLanguage, location } = req.body;
+    const {
+      fullName,
+      bio,
+      nativeLanguage,
+      learningLanguage,
+      location,
+      profilePic,
+    } = req.body;
+    const requiredFields = {
+      fullName,
+      bio,
+      nativeLanguage,
+      learningLanguage,
+      location,
+    };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([, value]) => typeof value !== "string" || !value.trim())
+      .map(([field]) => field);
 
-    if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
+    if (missingFields.length > 0) {
       return res.status(400).json({
         message: "All fields are required",
-        missingFields: [
-          !fullName && "fullName",
-          !bio && "bio",
-          !nativeLanguage && "nativeLanguage",
-          !learningLanguage && "learningLanguage",
-          !location && "location",
-        ].filter(Boolean),
+        missingFields,
       });
+    }
+
+    if (profilePic !== undefined && typeof profilePic !== "string") {
+      return res.status(400).json({ message: "Profile picture must be a URL or image" });
+    }
+
+    if (profilePic && profilePic.length > 900 * 1024) {
+      return res.status(400).json({ message: "Profile picture is too large" });
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
-        ...req.body,
+        fullName: fullName.trim(),
+        bio: bio.trim(),
+        nativeLanguage: nativeLanguage.trim(),
+        learningLanguage: learningLanguage.trim(),
+        location: location.trim(),
+        ...(profilePic !== undefined ? { profilePic } : {}),
         isOnboarded: true,
       },
-      { new: true }
-    );
+      { new: true, runValidators: true }
+    ).select("-password");
 
     if (!updatedUser) return res.status(404).json({ message: "User not found" });
 

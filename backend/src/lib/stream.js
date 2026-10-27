@@ -20,13 +20,10 @@ export const upsertStreamUser = async (userData) => {
 };
 
 export const generateStreamToken = (userId) => {
-  try {
-    // ensure userId is a string
-    const userIdStr = userId.toString();
-    return streamClient.createToken(userIdStr);
-  } catch (error) {
-    console.error("Error generating Stream token:", error);
+  if (!apiKey || !apiSecret) {
+    throw new Error("Stream API credentials are not configured");
   }
+  return streamClient.createToken(userId.toString());
 };
 
 export const getStreamUsersOnlineStatus = async (userIds) => {
@@ -37,4 +34,8 @@ export const getStreamUsersOnlineStatus = async (userIds) => {
   );
 
   return users.map(({ id, online }) => ({ id, online }));
+};
+
+export const sendStreamUserEvent = async (userId, event) => {
+  return streamClient.sendUserCustomEvent(userId, event);
 };
