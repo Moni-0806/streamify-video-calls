@@ -3,22 +3,32 @@ import { Link } from "react-router";
 import { BellIcon } from "lucide-react";
 import FriendCard from "../components/FriendCard";
 import NoFriendsFound from "../components/NoFriendsFound";
-import { getFriendsOnlineStatus, getUserFriends } from "../lib/api";
+import useStreamChat from "../hooks/useStreamChat";
+import { getUserFriends } from "../lib/api";
 
 const FriendsPage = () => {
+  const { chatClient, isReady } = useStreamChat();
   const { data: friends = [], isLoading } = useQuery({
     queryKey: ["friends"],
     queryFn: getUserFriends,
   });
+  const friendIds = friends.map((friend) => friend._id);
 
   const {
     data: friendsOnlineStatus = {},
     isError: onlineStatusError,
     isLoading: loadingOnlineStatus,
   } = useQuery({
-    queryKey: ["friendsOnlineStatus"],
-    queryFn: getFriendsOnlineStatus,
-    enabled: !isLoading && friends.length > 0,
+    queryKey: ["friendsOnlineStatus", friendIds],
+    queryFn: async () => {
+      const { users } = await chatClient.queryUsers(
+        { id: { $in: friendIds } },
+        [],
+        { presence: true, limit: friendIds.length },
+      );
+      return Object.fromEntries(users.map(({ id, online }) => [id, online]));
+    },
+    enabled: !isLoading && isReady && Boolean(chatClient) && friendIds.length > 0,
     refetchInterval: 30_000,
   });
 

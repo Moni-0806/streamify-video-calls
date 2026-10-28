@@ -11,12 +11,13 @@ if (!apiKey || !apiSecret) {
 const streamClient = StreamChat.getInstance(apiKey, apiSecret);
 
 export const upsertStreamUser = async (userData) => {
-  try {
-    await streamClient.upsertUsers([userData]);
-    return userData;
-  } catch (error) {
-    console.error("Error upserting Stream user:", error);
+  const streamUser = { ...userData };
+  if (typeof streamUser.image === "string" && /^data:/i.test(streamUser.image)) {
+    delete streamUser.image;
   }
+
+  await streamClient.upsertUsers([streamUser]);
+  return streamUser;
 };
 
 export const generateStreamToken = (userId) => {
@@ -24,16 +25,6 @@ export const generateStreamToken = (userId) => {
     throw new Error("Stream API credentials are not configured");
   }
   return streamClient.createToken(userId.toString());
-};
-
-export const getStreamUsersOnlineStatus = async (userIds) => {
-  const { users } = await streamClient.queryUsers(
-    { id: { $in: userIds } },
-    [],
-    { presence: true, limit: userIds.length },
-  );
-
-  return users.map(({ id, online }) => ({ id, online }));
 };
 
 export const sendStreamUserEvent = async (userId, event) => {
