@@ -1,14 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import { acceptFriendRequest, getFriendRequests } from "../lib/api";
-import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon } from "lucide-react";
+import {
+  BellIcon,
+  ClockIcon,
+  MessageSquareIcon,
+  UserCheckIcon,
+} from "lucide-react";
 import NoNotificationsFound from "../components/NoNotificationsFound";
+import useAuthUser from "../hooks/useAuthUser";
+import useStreamChat from "../hooks/useStreamChat";
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
+  const { authUser } = useAuthUser();
+  const { chatClient, isReady, streamError } = useStreamChat();
 
   const { data: friendRequests, isLoading } = useQuery({
-    queryKey: ["friendRequests"],
+    queryKey: ["friendRequests", authUser?._id],
     queryFn: getFriendRequests,
+  });
+
+  const {
+    data: unreadChannels = [],
+    isLoading: isLoadingUnreadChannels,
+    isError: unreadChannelsError,
+  } = useQuery({
+    queryKey: ["unreadChannels", authUser?._id],
+    queryFn: async () => {
+      const channels = await chatClient.queryChannels(
+        { members: { $in: [authUser._id] } },
+        { last_message_at: -1 },
+        { limit: 100, state: true, watch: false }
+      );
+      return channels.filter((channel) => channel.state.unreadCount > 0);
+    },
+    enabled: Boolean(isReady && chatClient && authUser),
   });
 
   const { mutate: acceptRequestMutation, isPending } = useMutation({
@@ -81,6 +108,73 @@ const NotificationsPage = () => {
               </section>
             )}
 
+            {(unreadChannels.length > 0 ||
+              isLoadingUnreadChannels ||
+              unreadChannelsError ||
+              streamError ||
+              !isReady) && (
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <MessageSquareIcon className="h-5 w-5 text-primary" />
+                Unread Messages
+                {!isLoadingUnreadChannels && !unreadChannelsError && (
+                  <span className="badge badge-error ml-2">
+                    {unreadChannels.reduce(
+                      (total, channel) => total + channel.state.unreadCount,
+                      0
+                    )}
+                  </span>
+                )}
+              </h2>
+
+              {streamError || unreadChannelsError ? (
+                <p className="text-sm text-error">
+                  Unable to load unread messages. Please try again later.
+                </p>
+              ) : isLoadingUnreadChannels || !isReady ? (
+                <div className="flex justify-center py-6">
+                  <span className="loading loading-spinner loading-md" />
+                </div>
+              ) : unreadChannels.length > 0 ? (
+                <div className="space-y-3">
+                  {unreadChannels.map((channel) => {
+                    const otherMember = Object.values(channel.state.members || {}).find(
+                      (member) => member.user?.id !== authUser?._id
+                    );
+                    const friend = otherMember?.user;
+                    const lastMessage = channel.state.messages.at(-1);
+                    if (!friend?.id) return null;
+
+                    return (
+                      <Link
+                        key={channel.cid}
+                        to={`/chat/${friend.id}`}
+                        className="card bg-base-200 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="card-body p-4 flex-row items-center gap-3">
+                          <div className="avatar size-12">
+                            <img src={friend.image} alt={friend.name || "Friend"} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold">{friend.name || "Friend"}</h3>
+                            <p className="text-sm opacity-70 truncate">
+                              {lastMessage?.text || "You have an unread message"}
+                            </p>
+                          </div>
+                          <span className="badge badge-error">
+                            {channel.state.unreadCount}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm opacity-70">You have no unread messages.</p>
+              )}
+            </section>
+            )}
+
             {/* ACCEPTED REQS NOTIFICATONS */}
             {acceptedRequests.length > 0 && (
               <section className="space-y-4">
@@ -122,7 +216,12 @@ const NotificationsPage = () => {
               </section>
             )}
 
-            {incomingRequests.length === 0 && acceptedRequests.length === 0 && (
+            {incomingRequests.length === 0 &&
+              acceptedRequests.length === 0 &&
+              unreadChannels.length === 0 &&
+              !isLoadingUnreadChannels &&
+              !unreadChannelsError &&
+              isReady && (
               <NoNotificationsFound />
             )}
           </>

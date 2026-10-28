@@ -1,11 +1,22 @@
 import { Link, useLocation } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
-import { BellIcon, HomeIcon, ShipWheelIcon, UsersIcon } from "lucide-react";
+import {
+  BellIcon,
+  CircleHelpIcon,
+  HomeIcon,
+  PaletteIcon,
+  ShieldCheckIcon,
+  ShipWheelIcon,
+  UsersIcon,
+} from "lucide-react";
+import useStreamChat from "../hooks/useStreamChat";
 
 const Sidebar = () => {
   const { authUser } = useAuthUser();
+  const { incomingFriendRequestCount, unreadCount } = useStreamChat();
   const location = useLocation();
   const currentPath = location.pathname;
+  const notificationCount = incomingFriendRequestCount + unreadCount;
 
   return (
     <aside className="w-64 bg-base-200 border-r border-base-300 hidden lg:flex flex-col h-screen sticky top-0">
@@ -41,13 +52,42 @@ const Sidebar = () => {
 
         <Link
           to="/notifications"
+          aria-label={`Notifications, ${notificationCount} unread`}
           className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
             currentPath === "/notifications" ? "btn-active" : ""
           }`}
         >
-          <BellIcon className="size-5 text-base-content opacity-70" />
+          <span className="relative">
+            <BellIcon className="size-5 text-base-content opacity-70" />
+            {notificationCount > 0 && (
+              <span className="badge badge-error badge-xs absolute -right-3 -top-2">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            )}
+          </span>
           <span>Notifications</span>
         </Link>
+
+        <div className="divider my-3 text-xs opacity-50">ACCOUNT</div>
+
+        {[
+          { path: "/settings/settings", label: "Settings", icon: PaletteIcon },
+          { path: "/settings/privacy", label: "Privacy & Security", icon: ShieldCheckIcon },
+          { path: "/settings/switch-account", label: "Switch Account", icon: UsersIcon },
+          { path: "/settings/help", label: "Help & Feedback", icon: CircleHelpIcon },
+        ].map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
+              currentPath === item.path ? "btn-active" : ""
+            }`}
+            aria-current={currentPath === item.path ? "page" : undefined}
+          >
+            <item.icon className="size-5 text-base-content opacity-70" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
       </nav>
 
       {/* USER PROFILE SECTION */}

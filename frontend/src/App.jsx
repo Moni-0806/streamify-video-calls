@@ -8,6 +8,7 @@ import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CallPage from "./pages/CallPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 
 import { Toaster } from "react-hot-toast";
 
@@ -15,6 +16,7 @@ import PageLoader from "./components/PageLoader.jsx";
 import useAuthUser from "./hooks/useAuthUser.js";
 import Layout from "./components/Layout.jsx";
 import { useThemeStore } from "./store/useThemeStore.js";
+import StreamChatProvider from "./contexts/StreamChatContext.jsx";
 
 const App = () => {
   const { isLoading, authUser } = useAuthUser();
@@ -27,7 +29,8 @@ const App = () => {
 
   return (
     <div className="h-screen" data-theme={theme}>
-      <Routes>
+      <StreamChatProvider>
+        <Routes>
         <Route
           path="/"
           element={
@@ -77,6 +80,18 @@ const App = () => {
           }
         />
         <Route
+          path="/settings/:section"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <Layout showSidebar={true}>
+                <SettingsPage />
+              </Layout>
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+        <Route
           path="/call/:id"
           element={
             isAuthenticated && isOnboarded ? (
@@ -114,7 +129,8 @@ const App = () => {
             )
           }
         />
-      </Routes>
+        </Routes>
+      </StreamChatProvider>
 
       <Toaster />
     </div>

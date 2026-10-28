@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
-import { getStreamUsersOnlineStatus } from "../lib/stream.js";
+import { getStreamUsersOnlineStatus, sendStreamUserEvent } from "../lib/stream.js";
 
 export async function getRecommendedUsers(req, res) {
   try {
@@ -12,6 +12,7 @@ export async function getRecommendedUsers(req, res) {
         { _id: { $ne: currentUserId } }, //exclude current user
         { _id: { $nin: currentUser.friends } }, // exclude current user's friends
         { isOnboarded: true },
+        { isProfilePublic: { $ne: false } },
       ],
     });
     res.status(200).json(recommendedUsers);
@@ -90,6 +91,15 @@ export async function sendFriendRequest(req, res) {
       sender: myId,
       recipient: recipientId,
     });
+
+    try {
+      await sendStreamUserEvent(recipientId, {
+        type: "friend_request.new",
+        requestId: friendRequest._id.toString(),
+      });
+    } catch (error) {
+      console.error("Unable to send friend request notification:", error.message);
+    }
 
     res.status(201).json(friendRequest);
   } catch (error) {
