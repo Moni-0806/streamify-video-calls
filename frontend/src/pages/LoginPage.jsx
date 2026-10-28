@@ -139,7 +139,7 @@ const LoginPage = () => {
                         to="/signup"
                         className="text-primary hover:underline"
                       >
-                        Create one
+                        Create Account
                       </Link>
                     </p>
                   </div>

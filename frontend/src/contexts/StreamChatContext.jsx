@@ -4,6 +4,7 @@ import { StreamChat } from "stream-chat";
 import useAuthUser from "../hooks/useAuthUser";
 import StreamChatContext from "./streamChatContext";
 import { getFriendRequests, getStreamToken } from "../lib/api";
+import { getStreamUserImage } from "../lib/streamUser";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 let sharedStreamClient;
@@ -80,8 +81,13 @@ const StreamChatProvider = ({ children }) => {
 
         if (client.userID !== authUser._id) {
           if (client.userID) await client.disconnectUser();
+          const image = getStreamUserImage(authUser.profilePic);
           const connection = client.connectUser(
-            { id: authUser._id, name: authUser.fullName, image: authUser.profilePic },
+            {
+              id: authUser._id,
+              name: authUser.fullName,
+              ...(image ? { image } : {}),
+            },
             tokenData.token
           );
           sharedConnectionPromise = connection;
@@ -115,7 +121,7 @@ const StreamChatProvider = ({ children }) => {
         client.on("message.new", handleMessageNotification);
         client.on("notification.mark_read", handleMessageNotification);
         client.on("connection.recovered", handleMessageNotification);
-        client.on("friend_request.new", handleFriendRequestNotification);
+        client.on("friend_request_new", handleFriendRequestNotification);
         setChatClient(client);
         setIsReady(true);
         setStreamError(false);
@@ -151,7 +157,7 @@ const StreamChatProvider = ({ children }) => {
           client.off("connection.recovered", handleMessageNotification);
         }
         if (handleFriendRequestNotification) {
-          client.off("friend_request.new", handleFriendRequestNotification);
+          client.off("friend_request_new", handleFriendRequestNotification);
         }
       }
     };
