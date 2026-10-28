@@ -104,10 +104,10 @@ const ChatPage = () => {
   if (loading || !isReady || !chatClient || !channel) return <ChatLoader />;
 
   return (
-    <div className="h-[93vh]">
+    <div className="h-[calc(100dvh-4rem)] min-h-[24rem] w-full min-w-0 overflow-hidden">
       <Chat client={chatClient}>
         <Channel channel={channel}>
-          <div className="w-full relative">
+          <div className="relative h-full w-full min-w-0">
             <CallButton handleVideoCall={handleVideoCall} />
             <Window>
               <ChannelHeader />

@@ -31,16 +31,16 @@ const LoginPage = () => {
 
   return (
     <div
-      className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8"
+      className="flex min-h-screen min-h-[100svh] items-start justify-center overflow-y-auto p-4 sm:items-center sm:p-6 md:p-8"
       data-theme="forest"
     >
-      <div className="border border-primary/25 flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-base-100 rounded-xl shadow-lg overflow-hidden">
+      <div className="my-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-primary/25 bg-base-100 shadow-lg lg:flex-row">
         {/* LOGIN FORM SECTION */}
-        <div className="w-full lg:w-1/2 p-4 sm:p-8 flex flex-col">
+        <div className="flex w-full flex-col p-5 sm:p-8 lg:w-1/2">
           {/* LOGO */}
           <div className="mb-4 flex items-center justify-start gap-2">
-            <ShipWheelIcon className="size-9 text-primary" />
-            <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
+            <ShipWheelIcon className="size-8 text-primary sm:size-9" />
+            <span className="text-2xl font-bold font-mono tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary sm:text-3xl">
               Streamify
             </span>
           </div>
@@ -151,9 +151,9 @@ const LoginPage = () => {
 
         {/* IMAGE SECTION */}
         <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
-          <div className="max-w-md p-8">
+          <div className="max-w-md p-6 lg:p-8">
             {/* Illustration */}
-            <div className="relative aspect-square max-w-sm mx-auto">
+            <div className="relative mx-auto aspect-square max-w-xs xl:max-w-sm">
               <img
                 src="/i.png"
                 alt="Language connection illustration"

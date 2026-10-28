@@ -18,7 +18,26 @@ const Sidebar = () => {
   const currentPath = location.pathname;
   const notificationCount = incomingFriendRequestCount + unreadCount;
 
+  const mobileLinks = [
+    { path: "/", label: "Home", icon: HomeIcon, active: currentPath === "/" },
+    { path: "/friends", label: "Friends", icon: UsersIcon, active: currentPath === "/friends" },
+    {
+      path: "/notifications",
+      label: "Alerts",
+      icon: BellIcon,
+      active: currentPath === "/notifications",
+      notificationCount,
+    },
+    {
+      path: "/settings/settings",
+      label: "Settings",
+      icon: PaletteIcon,
+      active: currentPath.startsWith("/settings"),
+    },
+  ];
+
   return (
+    <>
     <aside className="w-64 bg-base-200 border-r border-base-300 hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-5 border-b border-base-300">
         <Link to="/" className="flex items-center gap-2.5">
@@ -108,6 +127,37 @@ const Sidebar = () => {
         </div>
       </div>
     </aside>
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-base-300 bg-base-200/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      aria-label="Main navigation"
+    >
+      {mobileLinks.map((item) => (
+        <Link
+          key={item.path}
+          to={item.path}
+          aria-current={item.active ? "page" : undefined}
+          aria-label={
+            item.notificationCount
+              ? `${item.label}, ${item.notificationCount} unread`
+              : item.label
+          }
+          className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-xs ${
+            item.active ? "text-primary" : "text-base-content/70"
+          }`}
+        >
+          <span className="relative">
+            <item.icon className="size-5" />
+            {item.notificationCount > 0 && (
+              <span className="badge badge-error badge-xs absolute -right-3 -top-2">
+                {item.notificationCount > 99 ? "99+" : item.notificationCount}
+              </span>
+            )}
+          </span>
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </nav>
+    </>
   );
 };
 export default Sidebar;
