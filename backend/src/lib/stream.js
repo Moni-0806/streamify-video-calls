@@ -30,7 +30,7 @@ export const getStreamUsersOnlineStatus = async (userIds) => {
   const { users } = await streamClient.queryUsers(
     { id: { $in: userIds } },
     [],
-    { presence: true, limit: userIds.length }
+    { presence: true, limit: userIds.length },
   );
 
   return users.map(({ id, online }) => ({ id, online }));
