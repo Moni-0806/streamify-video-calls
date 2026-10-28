@@ -3,14 +3,20 @@ import Navbar from "./Navbar";
 
 const Layout = ({ children, showSidebar = false }) => {
   return (
-    <div className="min-h-screen">
-      <div className="flex">
+    <div className="min-h-screen min-h-[100svh]">
+      <div className="flex min-h-[100svh]">
         {showSidebar && <Sidebar />}
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <Navbar />
 
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main
+            className={`min-w-0 flex-1 ${
+              showSidebar ? "pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0" : ""
+            }`}
+          >
+            {children}
+          </main>
         </div>
       </div>
     </div>

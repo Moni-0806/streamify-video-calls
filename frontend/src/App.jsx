@@ -28,7 +28,7 @@ const App = () => {
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="h-screen" data-theme={theme}>
+    <div className="min-h-screen min-h-[100svh]" data-theme={theme}>
       <StreamChatProvider>
         <Routes>
         <Route

@@ -21,22 +21,22 @@ const Navbar = () => {
   const { logoutMutation } = useLogout();
 
   return (
-    <nav className="bg-base-200 border-b border-base-300 sticky top-0 z-30 h-16 flex items-center">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-end w-full">
+    <nav className="sticky top-0 z-30 flex h-16 items-center border-b border-base-300 bg-base-200">
+      <div className="container mx-auto min-w-0 px-3 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center justify-between w-full">
           {/* LOGO - ONLY IN THE CHAT PAGE */}
           {isChatPage && (
-            <div className="pl-5">
+            <div className="min-w-0">
               <Link to="/" className="flex items-center gap-2.5">
-                <ShipWheelIcon className="size-9 text-primary" />
-                <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
+                <ShipWheelIcon className="size-7 shrink-0 text-primary sm:size-9" />
+                <span className="hidden text-2xl font-bold font-mono tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary sm:inline lg:text-3xl">
                   Streamify
                 </span>
               </Link>
             </div>
           )}
 
-          <div className="flex items-center gap-3 sm:gap-4 ml-auto">
+          <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-2">
             <Link
               to="/notifications"
               className="btn btn-ghost btn-circle relative"
@@ -51,7 +51,6 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* TODO */}
           <ThemeSelector />
 
           <div className="avatar">

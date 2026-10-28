@@ -2,8 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
 .str-chat__channel {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   align-items: center;
   justify-content: center;
   background: linear-gradient(to bottom, #c9e8c9, #b7e7bb);
@@ -13,7 +27,8 @@
 .str-chat__container {
   max-width: 1200px;
   width: 100%;
-  height: 80% !important;
+  height: 100% !important;
+  min-width: 0;
   margin: 0 auto !important;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -23,6 +38,7 @@
 .str-chat__list {
   background-color: #ffffff;
   padding: 12px;
+  min-width: 0;
 }
 
 .str-chat__list-notifications {
@@ -31,4 +47,18 @@
 
 .str-chat__message-input {
   border-top: 1px solid #ddd;
+}
+
+@media (max-width: 640px) {
+  .str-chat__container {
+    border-radius: 0;
+  }
+
+  .str-chat__list {
+    padding: 8px;
+  }
+
+  .str-chat__message-input {
+    padding: 8px;
+  }
 }
